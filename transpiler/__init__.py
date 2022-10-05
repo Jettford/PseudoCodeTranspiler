@@ -1,0 +1,303 @@
+from .tokenizer import Tokenizer
+
+
+class Transpiler:
+
+    def __init__(self):
+        self.skip = 0
+        self.token_list = []
+        self.output = None
+        self.indent_level = 0
+
+        self.functions = []
+
+    def get_next_token(self, i, move=1):
+        self.skip += (1 * move)
+        return self.token_list[i + self.skip]
+
+    def get_current_token(self, i):
+        return self.token_list[i + self.skip]
+
+    def has_another_token(self, i):
+        return len(self.token_list) > (i + self.skip + 1)
+
+    def step_back_a_token(self, count=1):
+        self.skip -= 1 * count
+
+    def step_forward_a_token(self, count=1):
+        self.skip += 1 * count
+
+    def write(self, value):
+        self.output.write(("\t" * self.indent_level) + value + "\n")
+
+    @staticmethod
+    def pseudo_type_to_py_type(type):
+        typeMap = {
+            "integer": "int",
+            "real": "float",
+            "string": "str",
+            "array": "array",
+            "character": "str",
+            "boolean": "bool"
+        }
+
+        if not type.lower() in typeMap:
+            raise Exception(f"Unknown type: {type}")
+
+        return typeMap[type.lower()]
+
+    def is_operator(self, i):
+        operatorList = [
+            "set", "send", "receive", "if", "else", "end", "repeat", "until",
+            "while", "for", "each", "from", "to", "do", "read", "write",
+            "then", "step", "procedure", "function", "return"
+        ]
+
+        return self.get_current_token(i).lower() in operatorList
+
+    def transpile(self, tokens, output_file):
+        self.output = open(output_file, "w")
+        self.token_list = tokens
+
+        for i in range(len(self.token_list)):
+            item = self.token_list[i].lower()
+
+            if self.skip > 0:
+                self.skip -= 1
+                continue
+
+            print("Transpiling command: " + item)
+
+            if item == "set":
+                variableName = self.get_next_token(i)
+                self.get_next_token(i)  # Literally just the TO operator
+                setValues = []
+
+                while True:
+                    if not self.has_another_token(i):
+                        break
+
+                    token = self.get_next_token(i)
+
+                    if self.is_operator(i):
+                        self.step_back_a_token()
+                        break
+
+                    token = token.replace("=", "==")
+
+                    if token.lower() in self.functions:
+                        setValues.append(token + self.get_next_token(i))
+                    else:
+                        setValues.append(token)
+
+                self.write(variableName + " = " + ' '.join(setValues))
+
+            elif item == "send":
+                data = []
+
+                while True:
+                    if not self.has_another_token(i):
+                        break
+
+                    token = self.get_next_token(i)
+
+                    if self.is_operator(i):
+                        break
+
+                    data.append(token)
+
+                location = self.get_next_token(i).lower()
+
+                if location == "display":
+                    self.write(f"print({' '.join(data)})")
+
+            elif item == "receive":
+                variableName = self.get_next_token(i)
+                self.get_next_token(i)  # Ignore
+                type = self.pseudo_type_to_py_type(
+                    self.get_next_token(i).strip("()[]{}"))
+                inputDevice = self.get_next_token(i)
+
+                if inputDevice == "keyboard":
+                    self.write(
+                        f"{variableName} = {type}(input('Please input {variableName}: '))"
+                    )
+
+            elif item == "read":
+                fileName = self.get_next_token(i)
+                variableToReadInto = self.get_next_token(i)
+
+                self.write(
+                    f"{variableToReadInto} = open('{fileName}', 'r').read()")
+
+            elif item == "write":
+                fileName = self.get_next_token(i)
+                insideOfArray = "["
+
+                while True:
+                    if not self.has_another_token(i):
+                        break
+
+                    token = self.get_next_token(i)
+
+                    if self.is_operator(i):
+                        break
+
+                    insideOfArray += token
+
+                self.step_back_a_token()
+
+                insideOfArray += "]"
+                self.write(f"file = open('{fileName}', 'w')")
+                self.write(f"for item in {insideOfArray}:")
+                self.write("\tfile.write(str(item))")
+
+            elif item == "const":
+                type = self.pseudo_type_to_py_type(self.get_next_token(i))
+                variableName = self.get_next_token(i)
+                self.write(f"{variableName}: {type}")
+
+            elif item == "if":
+                condition = []
+
+                while True:
+                    if not self.has_another_token(i):
+                        break
+
+                    token = self.get_next_token(i)
+
+                    if self.is_operator(i):
+                        break
+
+                    token = token.replace("=", "==")
+
+                    if token.lower() in self.functions:
+                        condition.append(token + self.get_next_token(i))
+                    else:
+                        condition.append(token)
+
+                self.write(f"if {' '.join(condition)}:")
+                self.indent_level += 1
+
+            elif item == "end":
+                endCondition = self.get_next_token(i).lower()
+
+                if endCondition in ["while", "if", "procedure", "function", "for", "foreach", "repeat"]:
+                    self.indent_level -= 1
+
+                self.write("")  # Just add some indenting for readability
+
+            elif item == "else":
+                self.indent_level -= 1
+                self.write("else:")
+                self.indent_level += 1
+
+            elif item == "while":
+                condition = []
+
+                while True:
+                    if not self.has_another_token(i):
+                        break
+
+                    token = self.get_next_token(i)
+
+                    if self.is_operator(i):
+                        break
+
+                    token = token.replace("=", "==")
+
+                    condition.append(token)
+
+                self.write(f"while {' '.join(condition)}:")
+                self.indent_level += 1
+
+            elif item == "repeat":
+                if self.get_next_token(i, 2) == "TIMES":
+                    self.step_back_a_token()
+                    self.write(f"for _ in range({self.get_current_token(i)}):")
+                    self.step_forward_a_token()
+                else:
+                    self.write("while True:")
+                self.indent_level += 1
+
+            elif item == "for":
+                if self.get_next_token(i) == "EACH":
+                    itemId = self.get_next_token(i)
+                    self.step_forward_a_token()
+                    sourceArray = self.get_next_token(i)
+                    self.step_forward_a_token()
+
+                    self.write(f"for {itemId} in {sourceArray}:")
+                    self.indent_level += 1
+
+                    continue
+
+                self.step_back_a_token()
+
+                hasStep = False
+                step = ""
+
+                indexName = self.get_next_token(i)
+                self.step_forward_a_token()
+                start = self.get_next_token(i)
+                self.step_forward_a_token()
+                end = self.get_next_token(i)
+
+                if self.get_next_token(i) == "STEP":
+                    step = self.get_next_token(i)
+                    hasStep = True
+                    self.step_forward_a_token()
+
+                writeValue = f"for {indexName} in range({start}, {end}"
+
+                if hasStep:
+                    writeValue += f", {step}):"
+                else:
+                    writeValue += "):"
+
+                self.write(writeValue)
+                self.indent_level += 1
+
+            elif item == "until":
+                condition = []
+
+                while True:
+                    if not self.has_another_token(i):
+                        break
+
+                    token = self.get_next_token(i)
+
+                    if self.is_operator(i):
+                        break
+
+                    token = token.replace("=", "==")
+
+                    condition.append(token)
+                self.step_back_a_token()
+
+                self.write(f"if {' '.join(condition)}:")
+                self.indent_level += 1
+                self.write(f"break")
+                self.indent_level -= 2
+
+                self.write("")
+
+            elif item == "procedure" or item == "function":
+                functionName = self.get_next_token(i)
+                params = self.get_next_token(i)
+
+                self.step_forward_a_token(2)
+
+                self.write(f"def {functionName}{params}:")
+                self.indent_level += 1
+
+                self.functions.append(functionName.lower())
+
+            elif item == "return":
+                self.write(f"return {self.get_next_token(i)}")
+
+            elif item in self.functions:
+                self.write(f"{self.get_current_token(i)}{self.get_next_token(i)}")
+                self.write("")
+
+        self.output.close()

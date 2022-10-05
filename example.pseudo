@@ -1,0 +1,60 @@
+# Example Pseudocode file
+
+SET test TO 'Success'
+IF test = 'Success' THEN
+    SEND test TO DISPLAY
+ELSE
+    SEND 'Failed' TO DISPLAY
+END IF
+
+WHILE test = 'Success' DO
+    SEND test TO DISPLAY
+    SET test TO 'Done Now'
+END WHILE
+
+SET testNum TO 0
+
+REPEAT
+    SEND testNum TO DISPLAY
+    IF testNum = 2 THEN
+        SEND 'We are at 2' TO DISPLAY
+    END IF
+    SET testNum to testNum + 1
+UNTIL testNum = 10
+
+FUNCTION CalculateAverage (item1, item2, item3)
+BEGIN FUNCTION
+    SET testVal TO (item1 + item2 + item3) / 3
+    RETURN testVal
+END FUNCTION
+
+SET testVal TO 0
+
+PROCEDURE CalculateAverageProc (item1, item2, item3)
+BEGIN PROCEDURE
+    SET testVal TO (item1 + item2 + item3) / 3
+END FUNCTION
+
+CalculateAverageProc (1, 2, 3)
+
+IF CalculateAverage (1, 2, 3) = testVal THEN
+    SEND "Success" TO DISPLAY
+END IF
+
+REPEAT 100 TIMES
+    SEND '*' TO DISPLAY
+END REPEAT
+
+SET testArray TO ['This', 'Is', 'A', 'Test', 'Array']
+
+FOR EACH item FROM testArray DO
+    SEND item TO DISPLAY
+END FOREACH
+
+FOR index FROM 10 TO 100 STEP 10 DO
+    SEND index TO DISPLAY
+END FOR
+
+FOR index FROM 10 TO 100 DO
+    SEND index TO DISPLAY
+END FOR
