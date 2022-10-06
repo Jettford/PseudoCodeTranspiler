@@ -17,7 +17,7 @@ def transpile(input_path, output_path):
         print("Failed to find the input file")
         exit(1)
 
-    input = open(input_path, "r")
+    input_data = open(input_path, "r")
 
     if output_path == "null":
         if not os.path.exists("output"): 
@@ -25,12 +25,12 @@ def transpile(input_path, output_path):
         output_path = "output/" + os.path.basename(input_path) + ".py"
 
     tokenizer = Tokenizer()
-    tokenizer.tokenize(input.read())
+    tokenizer.tokenize(input_data.read())
 
     transpiler = Transpiler()
     transpiler.transpile(tokenizer.token_list, output_path)
 
-    input.close()
+    input_data.close()
 
 
 if __name__ == "__main__":

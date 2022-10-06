@@ -2,3 +2,4 @@ input.pseudo
 output.py
 .idea/
 __pycache__/
+output/
