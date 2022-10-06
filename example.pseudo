@@ -1,11 +1,7 @@
 # Example Pseudocode file
 
 SET test TO 'Success'
-IF test = 'Success' THEN
-    SEND test TO DISPLAY
-ELSE
-    SEND 'Failed' TO DISPLAY
-END IF
+IF test = 'Success' THEN SEND test TO DISPLAY ELSE SEND 'Failed' TO DISPLAY END IF
 
 WHILE test = 'Success' DO
     SEND test TO DISPLAY
