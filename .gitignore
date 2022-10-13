@@ -3,3 +3,8 @@ output.py
 .idea/
 __pycache__/
 output/
+.fleet/
+lib/
+bin/
+lib64
+pyvenv.cfg

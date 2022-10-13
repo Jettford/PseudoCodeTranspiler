@@ -11,27 +11,27 @@ class Transpiler:
 
         self.functions = []
 
-    def get_next_token(self, i, move=1):
+    def get_next_token(self, i, move=1) -> str:
         self.skip += (1 * move)
         return self.token_list[i + self.skip]
 
-    def get_current_token(self, i):
+    def get_current_token(self, i) -> str:
         return self.token_list[i + self.skip]
 
-    def has_another_token(self, i):
+    def has_another_token(self, i) -> bool:
         return len(self.token_list) > (i + self.skip + 1)
 
-    def step_back_a_token(self, count=1):
+    def step_back_a_token(self, count=1) -> None:
         self.skip -= 1 * count
 
-    def step_forward_a_token(self, count=1):
+    def step_forward_a_token(self, count=1) -> None:
         self.skip += 1 * count
 
-    def write(self, value):
+    def write(self, value) -> None:
         self.output.write(("\t" * self.indent_level) + value + "\n")
 
     @staticmethod
-    def pseudo_type_to_py_type(type):
+    def pseudo_type_to_py_type(type) -> str:
         typeMap = {
             "integer": "int",
             "real": "float",
@@ -46,7 +46,7 @@ class Transpiler:
 
         return typeMap[type.lower()]
 
-    def is_operator(self, i):
+    def is_operator(self, i) -> bool:
         operatorList = [
             "set", "send", "receive", "if", "else", "end", "repeat", "until",
             "while", "for", "each", "from", "to", "do", "read", "write",
@@ -149,7 +149,7 @@ class Transpiler:
                     self.write(f"file = open('{fileName}', 'w')")
                     self.write(f"for item in {insideOfArray}:")
                     self.write("\tfile.write(str(item))")
-                
+
                 case "const":
                     type = self.pseudo_type_to_py_type(self.get_next_token(i))
                     variableName = self.get_next_token(i)
@@ -176,7 +176,7 @@ class Transpiler:
 
                     self.write(f"if {' '.join(condition)}:")
                     self.indent_level += 1
-                
+
                 case "end":
                     endCondition = self.get_next_token(i).lower()
 
@@ -208,7 +208,7 @@ class Transpiler:
 
                     self.write(f"while {' '.join(condition)}:")
                     self.indent_level += 1
-                
+
                 case "repeat":
                     if self.get_next_token(i, 2) == "TIMES":
                         self.step_back_a_token()
@@ -305,7 +305,7 @@ class Transpiler:
 
                 case "return":
                     self.write(f"return {self.get_next_token(i)}")
-            
+
             if item in self.functions:
                 self.write(f"{self.get_current_token(i)}{self.get_next_token(i)}")
                 self.write("")
